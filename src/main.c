@@ -1,12 +1,49 @@
+/**************************
+ * P-Touch PT-2450DX printer driver
+ *
+ * P. Pemberton, 2009
+ *
+ * Specs:
+ *   Printer head is 128 dots, 180dpi, for a total print area of ~18mm vertical
+ *   by however long your TZ label tape is.
+ *   Printhead size is (128/180)=0.711[.] inches, or 18.0622[.] mm
+ *   Each dot is (18.062/128) = 0.1411[.] mm
+ *   Printable area is (numdots * 0.1411) mm
+ *
+ *     Tape width   Margins      Printable area
+ *     mm    dots   mm     dots  mm    dots
+ *      6mm   42    1.0mm     7   4mm   28
+ *      9mm   63    1.0mm     7   7mm   49
+ *     12mm   85    2.0mm    14   8mm   57
+ *     18mm  127    3.0mm    21  12mm   85
+ *     24mm  170    3.0mm   128  18mm  128 ***
+ *
+ *   24mm is slightly odd. Because the printhead is only 128 dots (18mm), the
+ *   margins are enforced by this, and not the driver software. It is impossible
+ *   to print right to the edge of a 24mm label in a PT-2450DX.
+ *
+ **************************/
+
 #include <stdio.h>
 #include <stdlib.h>
-#include "hexdump.h"
+#include "ptouch.h"
+#include "pt_image.h"
 
-#define ESC 0x1b
+/****************************************************************************/
 
 int main(int argc, char **argv)
 {
-	FILE *prn;
+	pt_Device *dev;
+
+	pt_Image *im;
+
+	printf("create image\n");
+	im = ptimage_Create(123, 456);
+
+	printf("delete image\n");
+	ptimage_Free(im);
+
+	return 0;
 
 	// check command line args
 	if (argc < 2) {
@@ -14,34 +51,16 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	// open printer device
-	if ((prn = fopen(argv[1], "r+b")) == NULL) {
-		printf("ERROR: couldn't open printer device '%s'\n", argv[1]);
+	// Open and initialise the printer
+	dev = pt_Initialise(argv[1]);
+
+	if (dev == NULL) {
+		printf("Error opening printer device.\n");
 		return -1;
 	}
 
-	// INITIALISE
-	fprintf(prn, "%c%c", ESC, '@');
+	// Close the printer device
+	pt_Close(dev);
 
-	// REQUEST STATUS
-	fprintf(prn, "%c%c%c", ESC, 'i', 'S');
-
-	// Read status buffer from printer
-	unsigned char buf[32];
-	int timeout = 128;
-	do {
-		fread(buf, 1, 32, prn);
-	} while ((buf[0] != 0x80) && (timeout-- > 0));
-
-	if (timeout > 0) {
-		printf("Printer status:\n");
-		hex_dump(buf, 32);
-	} else {
-		printf("TIMEOUT\n");
-		return -1;
-	}
-
-	// Close the printer stream
-	fclose(prn);
 	return 0;
 }
