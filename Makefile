@@ -103,7 +103,7 @@ BUILD_TYPE	?=	debug
 TARGET		=	ptouch
 
 # source files that produce object files
-SRC			=	main.c hexdump.c
+SRC			=	main.c hexdump.c ptouch.c pt_image.c
 
 # source type - either "c" or "cpp" (C or C++)
 SRC_TYPE	=	c
