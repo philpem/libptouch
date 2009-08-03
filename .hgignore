@@ -3,3 +3,5 @@ syntax: glob
 .*.swp
 *~
 src/version.h
+dep/*.d
+obj/*.o
