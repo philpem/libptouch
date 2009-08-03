@@ -26,6 +26,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <gd.h>
+#include <gdfonts.h>
+#include <gdfontl.h>
 #include "ptouch.h"
 
 /****************************************************************************/
@@ -47,6 +50,35 @@ int main(int argc, char **argv)
 		printf("Error opening printer device.\n");
 		return -1;
 	}
+
+	// Get printer status
+	int err;
+	if ((err = pt_GetStatus(dev)) != PT_ERR_SUCCESS) {
+		printf("getstatus error %d\n", err);
+		return -1;
+	}
+
+	// Create a label
+	gdImagePtr im;
+	int white, black;
+	im = gdImageCreate(256, dev->pixelWidth);
+	white = gdImageColorAllocate(im, 255, 255, 255);
+	black = gdImageColorAllocate(im, 0, 0, 0);
+	gdImageString(im, gdFontGetLarge(), 0, 0, "!!123!! Test label !!ABC!!", black);
+	gdImageString(im, gdFontGetLarge(), 10, 10, "!!123!! Test label !!ABC!!", black);
+	gdImageString(im, gdFontGetLarge(), 20, 20, "!!123!! Test label !!ABC!!", black);
+	gdImageString(im, gdFontGetLarge(), 30, 30, "!!123!! Test label !!ABC!!", black);
+	gdImageString(im, gdFontGetLarge(), 40, 40, "!!123!! Test label !!ABC!!", black);
+
+	// dump the image (for testing purposes)
+	FILE *fp = fopen("labeldump.png", "wb");
+	gdImagePng(im, fp);
+	fclose(fp);
+
+	// Print the label
+	printf("Print state code: %d\n", pt_Print(dev, &im, 1));
+
+	gdImageDestroy(im);
 
 	// Close the printer device
 	pt_Close(dev);
