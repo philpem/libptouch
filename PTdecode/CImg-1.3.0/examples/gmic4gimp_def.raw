@@ -1,0 +1,500 @@
+#@gimp
+#
+#  File        : gmic4gimp_def.raw
+#                ( G'MIC for GIMP default macros and menu entries)
+#
+#  Description : Define menu entries for the GIMP plug-in.
+#                ( http://gmic.sourceforge.net )
+#                This file is also a part of the CImg Library project.
+#                ( http://cimg.sourceforge.net )
+#
+#  Note        : This file is here for illustration purposes, since commands defined in
+#                the default macro file are already present by default in G'MIC.
+#                Then, explicit inclusion of this file (using the '-m' option) if
+#                useless.
+#
+#  Copyright   : David Tschumperle
+#                ( http://www.greyc.ensicaen.fr/~dtschump/ )
+#
+#  License     : CeCILL v2.0
+#                ( http://www.cecill.info/licences/Licence_CeCILL_V2-en.html )
+#
+#  This software is governed by the CeCILL  license under French law and
+#  abiding by the rules of distribution of free software.  You can  use,
+#  modify and/ or redistribute the software under the terms of the CeCILL
+#  license as circulated by CEA, CNRS and INRIA at the following URL
+#  "http://www.cecill.info".
+#
+#  As a counterpart to the access to the source code and  rights to copy,
+#  modify and redistribute granted by the license, users are provided only
+#  with a limited warranty  and the software's author,  the holder of the
+#  economic rights,  and the successive licensors  have only  limited
+#  liability.
+#
+#  In this respect, the user's attention is drawn to the risks associated
+#  with loading,  using,  modifying and/or developing or reproducing the
+#  software by the user in light of its specific status of free software,
+#  that may mean  that it is complicated to manipulate,  and  that  also
+#  therefore means  that it is reserved for developers  and  experienced
+#  professionals having in-depth computer knowledge. Users are therefore
+#  encouraged to load and test the software's suitability as regards their
+#  requirements in conditions enabling the security of their systems and/or
+#  data to be ensured and,  more generally, to use and operate it in the
+#  same conditions as regards security.
+#
+#  The fact that you are presently reading this means that you have had
+#  knowledge of the CeCILL license and that you accept its terms.
+#
+
+#--- About the syntax of this file : ----------------------------------------------------------------------------------
+#
+# This file is a regular G'MIC macro file (see G'MIC help for more informations
+# on writting G'MIC macros). Each line beginning with '#@gimp' defines a filter entry
+# in the G'MIC Toolbox plug-in for GIMP.
+#
+# The general syntax of a '#@gimp' line is :
+#
+# '#@gimp "Menu name" : command, preview_command, parameter = typedef, parameter2 = typedef, ...'
+#
+# where 'command' is the G'MIC command name called to process the image,
+# and 'preview_command' is the G'MIC command name called to process the preview.
+# 'parameter=typedef' tells about the name and types of the filter parameters. 'typedef' can be :
+#
+# - 'float(default_value,min_value,max_value)'                   : add a float slider in the parameters GUI.
+# - 'int(default_value,min_value,max_value)'                     : add a int slider in the parameters GUI
+# - 'bool(default_value)'                                        : add a checkbutton in the parameters GUI.
+# - 'choice([default_indice],"Choice0","Choice1",...,"ChoiceN")' : add a combobox in the parameters GUI.
+# - 'text("default text")'                                       : add a text entry in the parameters GUI.
+# - 'file(["default_filename"])'                                 : add a file chooser button in the parameters GUI.
+# - 'color(defaultR,defaultG,defaultB[,defaultA])'               : add a color chooser button in the parameters GUI.
+# - 'note("Comment")'                                            : add a comment in the parameters GUI.
+#
+# To make '(' or ')' appearing in strings, replace them by '[' and ']'.
+#
+#----------------------------------------------------------------------------------------------------------------------
+
+# Generate a 'no-preview' image.
+gimp_nopreview :
+  -v- 112x52x1x3 -text[-1] "No preview\navailable",0,0,24,1,255 -r[-1] [-2],0,0,1
+  -f[-2] 0 -point[-2] 50%,50%,0,1,1 -distance[-2] 1 -n[-2] -180,0 -*[-2] -1
+  -or -skip
+
+# Generate a G'MIC logo image.
+gmic4gimp_logo :
+  -rm 65x32x1x3 -text G\'MIC,3,2,32,1,1 -r 200x100x1x3x5 -blur 4 -sharpen 5 --f 256 -plasma[-1] 10,3 -n[-1] 0,255
+  -cut 0,255 -* -elevation3d -0.4 230x120x1x3 -r3d 3 -sl3d 0
+  -rotate3d[-2] 1,0,0,10 -*3d[-2] 0.9 -c3d[-2] -object3d[-1] [-2],50%,40%,0,1 -rm[-2] -sqrt -n 0,255
+  -text "Toolbox for GIMP",12%,75%,24,1,255
+
+# Force the last image to be in RGB format.
+to_rgb :
+  --dimensions[-1] --[-1] 1
+  -if @{-1,3} --[-1] 1 -if @{-1,3} --[-1] 1 -if @{-1,3} -channels[-2] 0,2 -endif
+  -else -channels[-2] 0 -r[-2] 100%x100%x1x3 -endif -else -r[-2] 100%x100%x1x3
+  -endif -rm[-1]
+
+#@gimp Tiles
+#@-----------
+
+#@gimp Regular tiles : gimp_regular_tile, gimp_regular_tile0, Number of tiles along X = int(2,1,10), Number of tiles along Y = int(2,1,10), Image size = choice("Shrink", "Expand", "Repeat [Memory consuming !]")
+gimp_regular_tile0 :
+  (100) ($1,$2) -stats[-1] -/[-2] @{-1,1} -rm[-1] -r[-2] @-1%,@-1%,1,100%,2 -rm[-1] -array $1,$2
+gimp_regular_tile1 :
+  (100) ($1,$2) -stats[-1] -/[-2] @{-1,0} -rm[-1] -r[-2] @-1%,@-1%,1,100%,2 -rm[-1] -array $1,$2
+gimp_regular_tile2 :
+  -array $1,$2
+gimp_regular_tile :
+  -gimp_regular_tile$3 $1,$2
+
+#@gimp Faded tiles : gimp_fade_tile, gimp_fade_tile_preview, Number of tiles along X = int(2,1,10), Number of tiles along Y = int(2,1,10), Image size = choice("Shrink", "Expand", "Repeat [Memory consuming !]"), Fading start = float(80,1,100), Fading end = float(90,1,100)
+gimp_array_tile :
+  --translate[-1] 50%x50%x1x1,2 -mv[-1] -2 -fade_diamond $3,$4 -array $1,$2
+gimp_fade_tile0 :
+  (100) ($1,$2) -stats[-1] -/[-2] @{-1,1} -rm[-1] -r[-2] @-1%,@-1%,1,100%,2 -rm[-1] -gimp_array_tile $1,$2,$3,$4
+gimp_fade_tile1 :
+  (100) ($1,$2) -stats[-1] -/[-2] @{-1,0} -rm[-1] -r[-2] @-1%,@-1%,1,100%,2 -rm[-1] -gimp_array_tile $1,$2,$3,$4
+gimp_fade_tile2 :
+  -gimp_array_tile $1,$2,$3,$4
+gimp_fade_tile_preview :
+  -gimp_fade_tile0 $1,$2,$4,$5
+gimp_fade_tile :
+  -gimp_fade_tile$3 $1,$2,$4,$5
+
+#@gimp Mirror tiles : gimp_mirror_tile, gimp_mirror_tile0, Number of iterations = int(2,2,10), Expand size = bool(0)
+gimp_mirror_tile0 :
+  (2) ($1) --[-1] 1 -pow[-2] [-1] -rm[-1] --dimensions[-2] -/[-1] @-2 -r[-3] @{-1,0},@{-1,1},1,100%,2 -rm[-1,-2] -mirror_tile $1
+gimp_mirror_tile1 :
+  -mirror_tile $1
+gimp_mirror_tile :
+  -gimp_mirror_tile$2 $1
+
+#@gimp Image grid : gimp_image_grid, gimp_image_grid, Number of cells along X = int(10,1,100), Number of cells along Y = int(10,1,100)
+gimp_image_grid :
+  --dimensions (@{-1,0}) (@{-2,1}) -/[-2] $1 -/[-1] $2 -round[-2,-1] 1 -rm[-3] -reverse
+  -grid @-2,@-3 -rm[-3--2]
+
+#@gimp Tile rotation : gimp_tile_rotation, gimp_tile_rotation, Number of cells along X = int(5,1,80), Number of cells along Y = int(5,1,80), Rotation angle = float(5,0,360)
+gimp_tile_rotation :
+  --dimensions -mv[-1] -2 -split_tile $1,$2 -rotate[1--1] $3 -append_tile $1,$2 -r[-1] @-2,2 -rm[-2]
+
+#@gimp Psychedelic faded tiles : gimp_psychetiles, gimp_psychetiles, Number of tiles along X = int(2,1,10), Number of tiles along Y = int(2,1,10), Angle = float(10,0,360), Image size = choice("Shrink", "Expand", "Repeat [Memory consuming !]")
+_gimp_psychetiles :
+  -fft -translate 50%x50%,0,0,2 -rotate $3 -translate -50%,-50%,0,0,2 -ifft -k[0] -n 0,255 -array $1,$2
+gimp_psychetiles0 :
+  (100) ($1,$2) -stats[-1] -/[-2] @{-1,1} -rm[-1] -r[-2] @-1%,@-1%,1,100%,2 -rm[-1] -_gimp_psychetiles $1,$2,$3
+gimp_psychetiles1 :
+  (100) ($1,$2) -stats[-1] -/[-2] @{-1,0} -rm[-1] -r[-2] @-1%,@-1%,1,100%,2 -rm[-1] -_gimp_psychetiles $1,$2,$3
+gimp_psychetiles2 :
+  -_gimp_psychetiles $1,$2,$3
+gimp_psychetiles :
+  -gimp_psychetiles$4 $1,$2,$3
+
+#@gimp Tile normalization : gimp_tile_normalize, gimp_tile_normalize, Number of cells along X = int(25,1,80), Number of cells along Y = int(25,1,80)
+gimp_tile_normalize :
+  --dimensions -mv[-1] 0 --channels[-1] 0,2 -channels[-2] 3
+  -split_tile $1,$2 -n[2--1] 0,255 -append_tile $1,$2 -mv[-1] -2 -a[-2,-1] v -r[-1] @-2,0,0,0 -rm[-2]
+
+#@gimp Taquin puzzle : taquin, taquin, Number of X-subdivisions = int(7,1,20), Number of Y-subdivisions = int(7,1,20)
+
+#@gimp Random array of tiles : gimp_randomtiles, gimp_randomtiles, Number of source tiles along X = int(5,1,20), Number of source tiles along Y = int(5,1,20), Number of destination tiles along X = int(7,1,20), Number of destination tiles along Y = int(7,1,20)
+gimp_randomtiles :
+  -split_tile $1,$2 ($1) -*[-1] $2
+  -repeat $3 -repeat $4 (@?) -*[-1] @-2 -round[-1] 1 -i[-3] [@-1] -rm[-1] -done -done
+  --[-1] 1 -rm[0-@-1] -rm[-1] -append_tile $3,$4
+
+#@gimp Tiles to layers : gimp_tile2layers, gimp_tile2layers_preview, Number of tiles along X = int(2,1,100), Number of tiles along Y = int(2,1,100)
+gimp_tile2layers :
+  -split_tile $1,$2
+
+gimp_tile2layers_preview :
+  -split_tile $1,$2 -k[50%]
+
+#@gimp _Frames
+#--------------
+
+#@gimp Regular frame : gimp_color_frame, gimp_color_frame, Frame width = float(20,0,100), Frame height = float(20,0,100), Frame color = color(255,255,255,255), Keep original size = bool(0)
+gimp_color_frame :
+ --dimensions -mv[-1] 0
+ --r[-1] $1%x100%x1x100%,0 ($3^$4^$5^$6) -r[-1] [-2],1 -rm[-2] [-1] -mv[-1] -3 -a[-3--1] x
+ --r[-1] 100%x$2%x1x100%,0 ($3^$4^$5^$6) -r[-1] [-2],1 -rm[-2] [-1] -mv[-1] -3 -a[-3--1] y
+ -if $7 -r[-1] @-2,2 -endif -rm[0]
+
+#@gimp Fuzzy frame : gimp_frame_fuzzy, gimp_frame_fuzzy, Frame width = float(20,0,100), Frame height = float(20,0,100), Frame fuzzyness = float(10,0,40), Frame smoothness = float(1,0,5), Frame shading = float(1,0,5), Frame color = color(255,255,255,255)
+gimp_frame_fuzzy :
+  100%x100%x1x1
+  -polygon[-1] 4,0,0,100%,0,100%,$2%,0,$2%,1,1
+  -polygon[-1] 4,0,0,$1%,0,$1%,100%,0,100%,1,1
+  --mirror[-1] x -mirror[-1] y -or[-2,-1]
+  -spread $3 -blur[-1] $4 -threshold[-1] 50% -blur[-1] $5 -n[-1] 0,1
+  -r[-1] [-2],1
+  --*[-1] -1 -+[-1] 1 -*[-3,-1]
+  ($6^$7^$8^$9) -r[-1] 1x1x1x[-2],0 -r[-1] [-2],1 -*[-2,-1]
+  -+[-2,-1]
+
+#@gimp _Textures and patterns
+#----------------------------
+
+#@gimp Random puzzle : gimp_puzzle, gimp_puzzle, Scale = float(10,0,100)
+gimp_puzzle :
+  [-1] -r[-1] $1x$1x100%x100%x2 -noise[-1] 0.1 -r[-1] [-2] -rm[-2]
+  [-1]x2 -translate[-1] 1,1 --[-2,-1] -norm[-1] -threshold[-1] 0.01 -*[-1] -1
+  -+[-1] 1 -r[-1] [-2] -*[-1,-2] 10%x10%x10%x2 -noise[-1] 5,1
+  -r[-1] [-2],[-2],1,2,5 -warp[-2] [-1],1,1,1 -rm[-1]
+
+#@gimp Mosaic pattern : mosaic, mosaic, Density = float(2,0.1,10)
+
+#@gimp Whirls texture : whirls, whirls
+
+#@gimp Paper texture : paper_texture, paper_texture
+
+#@gimp Hearts : gimp_hearts, gimp_hearts, Density = float(10,0,100)
+gimp_hearts :
+  100%x100%x1 -noise[-1] $1,2 -r[-1] [-2] -n[-1] 0,1 -*[-1,-2] -_heart9x7
+  -mirror[-1] y -dilate[-2] [-1] -rm[-1]
+
+#@gimp _Artistic
+#----------------
+#@gimp Polaroid : gimp_polaroid, gimp_polaroid, Frame border size = int(20,1,400), Bottom border size = int(120,1,400), Background size = int(20,1,400), Rotation angle = float(20,0,360), note = note("\n\n<small><b>Note :</b> All sizes are expressed in numbers of pixels.</small>")
+gimp_polaroid :
+  -polaroid $1,$2,$3 -rotate $4,1
+
+#@gimp Old photograph : old_photo, old_photo
+
+#@gimp Drop shadow : gimp_drop_shadow, gimp_drop_shadow, Image elevation = int(10,0,25), Shadow smoothness = float(10,0,20), Rotation angle = float(20,0,360), Shadow position = choice("Bottom right", "Bottom left", "Up right", "Up left")
+gimp_drop_shadow0 :
+  -translate[-3,-2] $1,$1,0,0,1
+gimp_drop_shadow1 :
+  -translate[-3,-2] -$1,$1,0,0,1
+gimp_drop_shadow2 :
+  -translate[-3,-2] $1,-$1,0,0,1
+gimp_drop_shadow3 :
+  -translate[-3,-2] -$1,-$1,0,0,1
+gimp_drop_shadow :
+  --f[-1] 0 --[-1] 255 -r[-2,-1] 150%x150%x1x100%,0,0,1 -+[-1] 255 --blur[-1] $2 -gimp_drop_shadow$4 $1
+  -*[-2,-1] -n[-1] 0,255 -+[-2,-1] -rotate $3,1
+
+#@gimp Sponge effect : sponge, sponge, Sponge size = int(13,3,21)
+
+#@gimp Color ellipses : gimp_color_ellipses, gimp_color_ellipses, Opacity = float(0.07,0.01,0.5)
+gimp_color_ellipses :
+  -to_rgb -color_ellipses $1
+
+#@gimp Edges : gimp_edges, gimp_edges, Edge threshold = float(30,0,150)
+gimp_edges :
+  -to_rgb -edges $1
+
+#@gimp Cartoon : gimp_cartoon, gimp_cartoon, Edge threshold = float(30,0,150), Smoothness = float(1,0,10)
+gimp_cartoon :
+  -to_rgb [-1]x2 -edges $1 -r[-2] 8x8x1x3,2 -r[-3] 100%x100%x100%x3
+  -rgb2lut[-3] [-2] -lut2rgb[-3] [-2] -rm[-2] -blur[-2] $2 -*[-2--1] -n[-1] 0,255
+
+#@gimp Pen drawing : gimp_pen_drawing, gimp_pen_drawing
+gimp_pen_drawing :
+  -to_rgb -drawing
+
+#@gimp Whirl drawing : draw_whirl, draw_whirl
+
+#@gimp Cubism : gimp_cubism, gimp_cubism, Iterations = int(1000,1,3000), Bloc size = float(3,0,10), Maximum angle = float(90,0,360), Opacity = float(0.7,0.01,1), Smoothness = float(0,0,5)
+gimp_cubism :
+  --dimensions -*[-1] $2 -/[-1] 100 -stats[-1] -round[-1] 1 -mv[-1] 0 -cubism $1,@{-2,1},$3,$4,$5 -rm[0]
+
+#@gimp BW stencil : gimp_stencilbw, gimp_stencilbw, Edge threshold = float(30,0,150), Smoothness = float(10,0,30)
+gimp_stencilbw :
+  -r[-1] 100%x100%x1x100% -t float [-1] -edges $1 -quantize[-2] 3 -blur[-2] $2
+  -sharpen[-2] 1000000 -norm[-2] -n[-2] 0,1 -*[-1,-2] -n[-1] 0,255
+
+#@gimp BW pencil : gimp_pencilbw, gimp_pencilbw, Pencil type = float(0.3,0,5), Amplitude = float(60,0,200)
+gimp_pencilbw :
+  -to_rgb -norm -blur $1 -sharpen 4000 -smooth $2,0,1 -equalize 256
+  -sqrt -n 0,255 -r 100%x100%x1x3
+
+#@gimp BW dots : dotsbw, gimp_dotsbw_preview
+gimp_dotsbw_preview :
+  -r 300%x300%x1x3,3 -dotsbw
+
+#@gimp BW dithering : ditheredbw, ditheredbw
+
+#@gimp Warhol artwork : warhol, warhol, Number of tiles along X = int(3,1,10), Number of tiles along Y = int(3,1,10)
+
+#@gimp Soft glow : glow, glow, Amplitude = float(3,0,10)
+
+#@gimp Difference of Gaussians : gimp_dog, gimp_dog, Alpha = float(3,0,10), Beta = float(3.2,0,10)
+gimp_dog :
+  -dog $1,$2 -n 0,255
+
+#@gimp Tetris effect : gimp_tetris, gimp_tetris, Scale = int(10,1,100)
+gimp_tetris :
+  -to_rgb -tetris $1
+
+#@gimp _Deformations
+#-------------------
+
+#@gimp Water : water, water, Amplitude = float(30,0,300), Smoothness = float(1.5,0,4)
+
+#@gimp Water reflection : gimp_reflect, gimp_reflect
+gimp_reflect :
+  -to_rgb -reflect
+
+#@gimp Wave effect : gimp_wave, gimp_wave, Amplitude = float(10,0,30) Frequency = float(0.4,0,2), X-center = float(50,0,100), Y-center = float(50,0,100)
+gimp_wave :
+  100%x100% -=[-1] 1,$3%,$4% -distance[-1] 1
+  -*[-1] $2 --sin[-1] -cos[-2] -a[-2,-1] v -*[-1] $1
+  -warp[-2] [-1],1 -rm[-1]
+
+#@gimp Random deformation : deform, deform, Amplitude = float(10,0,200)
+
+#@gimp Fish-eye : fish_eye, fish_eye, Amplitude = float(250,0,1000)
+
+#@gimp _Degradations
+#--------------------
+
+#@gimp Noise : gimp_noise, gimp_noise, Amplitude = float(30,0,200), Noise type = choice("Gaussian","Uniform","Salt and pepper","Poisson"), Value range = choice("Cut","Normalize"), Channels = choice("RGB[A]","Luminance","Blue and Red chrominances","Blue chrominance","Red chrominance")
+gimp_noise0 :
+  -noise[-1] $1,$2
+gimp_noise1 :
+  -to_rgb -rgb2ycbcr -s v -noise[-3] $1,$2 -a v -ycbcr2rgb
+gimp_noise2 :
+  -to_rgb -rgb2ycbcr -s v -noise[-2,-1] $1,$2 -a v -ycbcr2rgb
+gimp_noise3 :
+  -to_rgb -rgb2ycbcr -s v -noise[-2] $1,$2 -a v -ycbcr2rgb
+gimp_noise4 :
+  -to_rgb -rgb2ycbcr -s v -noise[-1] $1,$2 -a v -ycbcr2rgb
+gimp_noise :
+  -gimp_noise$4 $1,$2 -if $3 -n 0,255 -else -cut 0,255 -endif
+
+#@gimp Random shade stripes : gimp_shade_stripes, gimp_shade_stripes, Frequency = float(30,1,100), Stripes orientation = choice(Horizontal,Vertical), Darkness = float(0.8,0,3), Lightness = float(2,0,3)
+gimp_shade_stripes :
+  -n 0,255
+  -if $2 100% -else 1x100% -endif
+  -noise[-1] $1,2 -distance[-1] 1
+  -r[-1] [-2] -n[-1] $3,$4 -*[-1,-2] -cut[-1] 0,255
+
+#@gimp Old-movie stripes : stripesy, stripesy, Frequency = float(10,0,100)
+
+#@gimp Damp patch : damp_patch, damp_patch, Opacity = float(0.7,0,1)
+
+#@gimp Light patch : light_patch, light_patch, Darkness = float(0.7,0,1), Lightness = float(2.5,1,4)
+
+#@gimp _Image enhancement
+#-------------------------
+
+#@gimp Anisotropic smoothing : gimp_anisotropic_filter, gimp_anisotropic_filter, Amplitude = float(60,0,1000), Edge preservation = float(0.7,0,2), Anisotropy = float(0.3,0,1), Gradient smoothness = float(0.6,0,10), Tensor smoothness = float(1.1,0,10), Spatial precision = float(0.8,0.1,2), Angular precision = float(30,1,180), Value precision = float(2,0.1,5), Interpolation type = choice("Nearest neighbor","Linear","Runge-Kutta"), Fast gaussian approximation = bool(1), Number of iterations = int(1,1,10), Channels processing = choice("RGB","Luminance","Blue and Red chrominances","Blue chrominance","Red chrominance"), Tile subdivisions = int(1,1,10), note = note("\n<small><b>Note : </b>This filter is a part of the <b>GREYCstoration</b> framework, see :\n<i>http://cimg.sourceforge.net/greycstoration/</i> for more details about it.</small>")
+# RGB version
+gimp_anisotropic_filter0 :
+  -split_tile $12,$12 -repeat $11 -smooth $1,$2,$3,$4,$5,$6,$7,$8,$9,$10 -done -append_tile $12,$12 -cut 0,255
+# Luminance version
+gimp_anisotropic_filter1 :
+  -rgb2ycbcr -s v -repeat $11 -smooth[-3] $1,$2,$3,$4,$5,$6,$7,$8,$9,$10 -done -a v -ycbcr2rgb -cut 0,255
+# Chrominance version
+gimp_anisotropic_filter2 :
+  -rgb2ycbcr -s v -repeat $11 -smooth[-2,-1] $1,$2,$3,$4,$5,$6,$7,$8,$9,$10 -done -a v -ycbcr2rgb -cut 0,255
+# Blue chrominance version
+gimp_anisotropic_filter3 :
+  -rgb2ycbcr -s v -repeat $11 -smooth[-2] $1,$2,$3,$4,$5,$6,$7,$8,$9,$10 -done -a v -ycbcr2rgb -cut 0,255
+# Red chrominance version
+gimp_anisotropic_filter4 :
+  -rgb2ycbcr -s v -repeat $11 -smooth[-1] $1,$2,$3,$4,$5,$6,$7,$8,$9,$10 -done -a v -ycbcr2rgb -cut 0,255
+# Generic version
+gimp_anisotropic_filter :
+  -gimp_anisotropic_filter$12 $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13
+
+#@gimp Patch-based smoothing : gimp_patch_filter, gimp_patch_filter, Patch size = int(3,2,21), Lookup size = int(5,2,21), Patch variance = float(10,0.1,200), Value variance = float(10,0.1,200), Number of iterations = int(1,1,10), Channels processing = choice("RGB","Luminance","Blue and Red chrominances","Blue chrominance","Red chrominance"), note = note("\n<small><b>Note : </b>This filter is a part of the <b>GREYCstoration</b> framework, see :\n<i>http://cimg.sourceforge.net/greycstoration/</i> for more details about it.</small>")
+# RGB version
+gimp_patch_filter0 :
+  -repeat $5 -denoise $4,$3,$1,$2 -done -cut 0,255
+# Luminance version
+gimp_patch_filter1 :
+  -rgb2ycbcr -s v -repeat $5 -denoise[-3] $4,$3,$1,$2 -done -a v -ycbcr2rgb -cut 0,255
+# Chrominance version
+gimp_patch_filter2 :
+  -rgb2ycbcr -s v -repeat $5 -denoise[-2,-1] $4,$3,$1,$2 -done -a v -ycbcr2rgb -cut 0,255
+# Blue chrominance version
+gimp_patch_filter3 :
+  -rgb2ycbcr -s v -repeat $5 -denoise[-2] $4,$3,$1,$2 -done -a v -ycbcr2rgb -cut 0,255
+# Red chrominance version
+gimp_patch_filter4 :
+  -rgb2ycbcr -s v -repeat $5 -denoise[-1] $4,$3,$1,$2 -done -a v -ycbcr2rgb -cut 0,255
+# Generic version
+gimp_patch_filter :
+  -gimp_patch_filter$6 $1,$2,$3,$4,$5
+
+#@gimp Bilateral filtering : gimp_bilateral, gimp_bilateral, Spatial variance = float(40,0,100), Value variance = float(30,0,100), Number of iterations = int(1,1,10)
+gimp_bilateral :
+  -repeat $3 -bilateral $1,$2 -done
+
+#@gimp Mean-curvature regularization : gimp_meancurvature_flow, gimp_meancurvature_flow, Number of iterations = int(4,1,10), Time step = float(30,5,50)
+gimp_meancurvature_flow :
+  -meancurvature_flow $1,$2 -cut 0,255
+
+#@gimp TV regularization : gimp_tvflow, gimp_tvflow, Number of iterations = int(4,1,40), Time step = float(30,5,100)
+gimp_tvflow :
+  -tv_flow $1,$2 -cut 0,255
+
+#@gimp Inverse diffusion sharpening : gimp_sharpen0, gimp_sharpen0, Amplitude = float(50,1,300), Number of iterations = int(2,1,10)
+gimp_sharpen0 :
+  -repeat $2 -sharpen $1,0 -done -cut 0,255
+
+#@gimp Shock filters sharpening : gimp_sharpen1, gimp_sharpen1, Amplitude = float(150,1,400), Edge threshold = float(0.1,0,0.7), Gradient smoothness = float(0.8,0,10), Tensor smoothness = float(1.1,0,10), Number of iterations = int(1,1,10)
+gimp_sharpen1 :
+  -repeat $5 -sharpen $1,1,$2,$3,$4 -done -cut 0,255
+
+#@gimp Deinterlace : gimp_deinterlace, gimp_deinterlace0, Method = choice("Simple","Motion-compensated")
+gimp_deinterlace0 :
+  -deinterlace 0
+gimp_deinterlace :
+  -deinterlace $1
+
+#@gimp _Rendering and synthesis
+#-------------------------------
+
+#@gimp 3D elevation [static] : gimp_elevation, gimp_elevation_preview, Rendering width = int(512,8,1024), Rendering height = int(512,8,1024), Value scale = float(-0.15,-0.7,0.7), Map smoothness = float(1,0,10), Background color = color(255,255,255), X-angle = float(70,0,360), Y-angle = float(20,0,360), Zoom = float(1,0.1,4), Rendering type = choice(4,"Points","Lines","Flat","Flat shaded","Gouraud","Phong"), Opacity = float(1,0,1), Focale = float(500,100,800)
+gimp_elevation :
+  -to_rgb --blur $4 -*[-1] $3 -r $1,$2,1,-100,2 -elevation3d[0] [-1] -rm[1] -c3d[-1] -r3d $11 -f3d $13
+  ($5^$6^$7) -r[-1] $1x$2x1x3
+  -rot3d[0] 0,0,1,$9 -rot3d[0] 1,0,0,$8 -*3d[0] $10 -object3d[-1] [0],50%,50%,0,$12 -rm[0]
+
+gimp_elevation_preview :
+  -to_rgb --blur $4 -*[-1] $3 -r 200,200,1,-100,2 -elevation3d[0] [-1] -rm[-1] -c3d[-1] -r3d $11 -f3d $13
+  ($5^$6^$7) -r[-1] 200x200x1x3
+  -rot3d[0] 0,0,1,$9 -rot3d[0] 1,0,0,$8 -*3d[0] $10 -object3d[-1] [0],50%,50%,0,$12 -rm[0]
+
+#@gimp 3D elevation [animated] : gimp_elevation_anim, gimp_elevation_anim_preview, Rendering width = int(512,8,1024), Rendering height = int(512,8,1024), Value scale = float(-0.15,-0.7,0.7), Map smoothness = float(1,0,10), Background color = color(255,255,255), X-angle = float(70,0,360), Rotation step = float(5,1,360), Zoom = float(1,0.1,4), Rendering type = choice(4,"Points","Lines","Flat","Flat shaded","Gouraud","Phong"), Opacity = float(1,0,1), Number of frames = int(10,1,360), Focale = float(500,100,800)
+gimp_elevation_anim :
+  -to_rgb --blur $4 -*[1] $3 -r $1,$2,1,-100,2 -elevation3d[0] [1] -rm[1] -c3d[-1] -r3d $11 -f3d $14
+  -repeat $13
+  ($5^$6^$7) -r[-1] $1x$2x1x3
+  --rot3d[0] 1,0,0,$8 -*3d[-1] $10 -object3d[-2] [-1],50%,50%,0,$12 -rm[-1] -rot3d[0] 0,0,1,$9 -done -rm[0]
+
+gimp_elevation_anim_preview :
+  -to_rgb --blur $4 -*[1] $3 -r 200,200,1,-100,2 -elevation3d[-2] [-1] -rm[-1] -c3d[-1] -r3d $11 -f3d $14
+  ($5^$6^$7) -r[-1] 200x200x1x3
+  -rot3d[0] 1,0,0,$8 -*3d[0] $10 -object3d[-1] [0],50%,50%,0,$12 -rm[0]
+
+#@gimp Image cube : gimp_imagecube3d, gimp_imagecube3d, Rendering size = int(512,1,1024), Image resolution = int(128,1,512), Cube size = float(256,0,512), X-angle = float(57,0,360), Y-angle = float(41,0,360), Z-angle = float(21,0,360), Background type = choice(1,"Color","Plasma"), Background color = color(255,255,255)
+_gimp_imagecube3d0 : ($1^$2^$3) -r[-1] [-2],1 -rm[-2]
+_gimp_imagecube3d1 : -plasma[-1] 10,10 -n[-1] 0,128 -skip $*
+gimp_imagecube3d :
+  -to_rgb -imagecube3d $2 -*3d $3 -rot3d 0,0,1,$6 -rot3d 0,1,0,$5 -rot3d 1,0,0,$4 $1x$1x1x3
+  -_gimp_imagecube3d$7 $8,$9,$10 -r3d 2 -o3d -object3d[1] [0],50%,50% -k[1]
+
+#@gimp Random 3D objects : gimp_random3d, gimp_random3d, Type of objects = choice("Cube","Cone","Cylinder","Sphere","Torus"), Number of objects = int(50,1,300), Object size = float(3,1,20), Z-range = float(100,0,300), Rendering type = choice(3,"Points","Lines","Flat","Flat shaded","Gouraud","Phong"), Opacity = float(1,0,1)
+_gimp_random3d0 : -cube3d $1
+_gimp_random3d1 : ($1) -/[-1] 2 -cone3d @-1,$1 -rm[-2]
+_gimp_random3d2 : ($1) -/[-1] 2 -cylinder3d @-1,$1 -rm[-2]
+_gimp_random3d3 : -sphere3d $1,2
+_gimp_random3d4 : ($1) -/[-1] 3 -torus3d $1,@-1 -rm[-2]
+gimp_random3d :
+  -to_rgb --dimensions -/[-1] 2 -repeat $2
+  (@{1,0}) -+[-1] @{1,1} -*[-1] $3 -/[-1] 100 -p[-1] -v- -_gimp_random3d$1 @-1 -rm[-2]
+  -rot3d[-1] 1,1,0,@{?,0,360}
+  (@{?,-1,1}) -*[-1] @{1,0} (@{?,-1,1}) -*[-1] @{1,1}
+  -+3d[-3] @-2,@-1,@{?,-$4,$4} -rm[-2,-1]
+  -col3d[-1] @{?,255},@{?,255},@{?,255} -done -+3d[2--1] -r3d $5 -o3d -object3d[0] [-1],50%,50%,0,$6
+  -k[0]
+
+#@gimp Mandelbrot fractal : gimp_mandelbrot, gimp_mandelbrot, X-origin = float(0,-2,2), Y-origin = float(0,-2,2), X-range = float(2,0,2), Y-range = float(2,0,2), Number of iterations = int(128,1,512), Fractal set = choice(Mandelbrot, Julia), X-seed = float(0,-2,2), Y-seed = float(0,-2,2), Palette = choice(Grayscale,Blue,Hot,Clusters)
+gimp_mandelbrot :
+  ($1) --[-1] $3 ($2) --[-1] $4 ($1) -+[-1] $3 ($2) -+[-1] $4 -a[-4--1] x
+  -mandelbrot[-2] @-1,$5,$6,$7,$8 -rm[-1]
+  -if $9 ($9) --[-1] 1 -lut2rgb[-2] @-1 -rm[-1] -else -norm -n 0,255 -endif
+
+#@gimp _Selections
+#------------------
+#@gimp Global RGB selection : gimp_selectrgb, gimp_selectrgb, Selected color = color(255,255,255), Tolerance = float(100,1,450)
+gimp_selectrgb :
+  -to_rgb -select_rgb $1,$2,$3,$4 -n 0,255
+
+#@gimp _Bulk filters
+#--------------------
+#@gimp Fourier transform (centered log-module) : gimp_fourier, gimp_fourier
+gimp_fourier :
+  -fft -sqr -+ -sqrt -+ 1 -log -translate 50%,50%,0,0,2 -n 0,255
+
+#@gimp Import image data : gimp_import_image, gimp_import_image, Filename = file(), Enable normalization = bool(1), note = note("\n<small><b>Note : </b>This filter may be useful to import image data with exotic formats : Pandore, CImg, Inrimage, ...</small>")
+gimp_import_image :
+  -rm $1 -s z -if $2 -n 0,255 -else -cut 0,255 -endif -p
+
+#@gimp Custom G'MIC command : gimp_custom, gimp_custom, Command = text("--blur 2 -xor"), note = note("\n<small><b>Note : </b>This filter can execute any command understood by the G'MIC interpreter. You can then test some commands before creating your own G'MIC macros and menu entries.</small>")
+gimp_custom :
+  -nop
+
+#@gimp _Additionnal informations
+#--------------------------------
+#@gimp About the G'MIC Toolbox : nop, gmic4gimp_logo, note = note("\n<b>The G'MIC Toolbox for GIMP</b>\n[ <b>G</b>REYC's <b>M</b>agic <b>I</b>mage <b>C</b>onverter, <i>version 1.3.0.3]</i>\n\n written by <i>David Tschumperle</i>\n\nThis plug-in is based on the libraries <i>G'MIC</i> and <i>CImg\n[C++ Template Image Processing Library]</i>, available at :\n\n      - http://gmic.sourceforge.net/ -      and\n      - http://cimg.sourceforge.net/ -\n\nAll code and libraries are open-source and have been developed in the <i>Image Team</i> at the <i>GREYC Laboratory</i> - CNRS UMR 6072 - in Caen/France.\n\n<small>If you enjoy using G'MIC, it would be nice to send us a nice postcard\nfrom your place at the following address :\n\n<tt>   David Tschumperle, GREYC Image,\n   6 Bd du Marechal Juin, 14050 Caen Cedex / France.</tt></small>")
+
+#@gimp Release notes : nop, gmic4gimp_logo, note = note("- <b>2009/01/13</b> : version <i>1.3.0</i> [Initial].\n- <b>2009/01/16</b> : version <i>1.3.0.1</i>.\n- <b>2009/01/22</b> : version <i>1.3.0.2</i>.\n- <b>2009/01/26</b> : version <i>1.3.0.3</i>.\n- <b>2009/02/20</b> : version <i>1.3.0.4</i> [current].")
+
+#@gimp Adding user-defined filters : nop, gmic4gimp_logo, note = note("It is possible to add your own <b>user-defined filters</b> to the G'MIC Toolbox :\n\nCreate a <i>.gmic4gimp</i> text file in your home directory [or appdata directory on Windows]. The plug-in will read it\neach time it is called. This file must be a regular\n<b>G'MIC macro file</b> containing your filter definitions that\nwill be added to the list of existing ones.\nLook at the default filters file :\n\n<small><i>http://gmic.sourceforge.net/.gmic4gimp_def</i></small>\n\n  ...to see how existing filters have been defined and \nadded to the G'MIC Toolbox. Writting a new filter can be generally done in very few lines with G'MIC.\n\n<small><b>Example</b> of a valid <i>.gmic4gimp</i> file :\n\n<tt>#@gimp My effect : my_effect, my_effect, Sigma = float[2,0,10]\nmy_effect :\n  --blur $1 -n 0,255 -xor</tt>\n\nBy the way, you are welcome to submit and share your nice custom filters on the G'MIC webpage forums.</small>")
+
+#@gimp Updating existing G'MIC filters : nop, gmic4gimp_logo, note = note("The G'MIC Toolbox is able to <b>update</b> his list of filters definitions. Click on the <i>Update Filters</i> button on the\nleft pane to connect to the server and download\nthe update file.\n\n Basically, the update procedure downloads a file\n<i>.gmic4gimp_def.xxxx</i> into your home directory [or appdata directory on Windows] where <i>xxxx</i> are the four digits\nof the version number of your G'MIC plug-in.\nYou can manually install the update file from :\n\n<small><i>http://www.greyc.ensicaen.fr/~dtschump/gmic4gimp_def.xxxx</i></small>\n\nJust copy and rename this file as your file\n<i>.gmic4gimp_def.xxxx</i> and the update is done.\nBy the way, removing this local file also resets all the\nfilter definitions to their initial state.")
+
+#@gimp Initial G'MIC filters
+#----------------------------
+#@gimp About this section : nop, gmic4gimp_logo, note = note("This section contains all the <i>initial</i> definitions of the filters from the G'MIC Toolbox, i.e. the ones defined at the latest release date. If no filters appear below, then you did not update your filter list yet.")
+
+# Local Variables:
+# mode: sh
+# End:
+#
+# (End of G'MIC macro file)
+
