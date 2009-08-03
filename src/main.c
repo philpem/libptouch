@@ -27,23 +27,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ptouch.h"
-#include "pt_image.h"
 
 /****************************************************************************/
 
 int main(int argc, char **argv)
 {
 	pt_Device *dev;
-
-	pt_Image *im;
-
-	printf("create image\n");
-	im = ptimage_Create(123, 456);
-
-	printf("delete image\n");
-	ptimage_Free(im);
-
-	return 0;
 
 	// check command line args
 	if (argc < 2) {
