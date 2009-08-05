@@ -11,6 +11,10 @@
 // TODO: disable
 #define DEBUG
 
+// This debug option forces Request Status to always "see" a good status
+// block. Mostly useful for testing using write-to-file mode.
+#define DEBUG_SKIP_STATUS_READ
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -56,6 +60,18 @@ pt_Device *pt_Initialise(char *path)
 
 int pt_GetStatus(pt_Device *dev)
 {
+#ifdef DEBUG_SKIP_STATUS_READ
+	unsigned char buf[32];
+	memset(buf, 0x00, 32);
+	buf[0] = 0x80;
+	buf[1] = 0x20;
+	buf[2] = 0x42;
+	buf[3] = 0x30;
+	buf[4] = 0x4b;
+	buf[5] = 0x30;
+	buf[10] = 0x0c;
+	buf[11] = 0x01;
+#else
 	// REQUEST STATUS
 	fprintf(dev->fp, "%c%c%c", ESC, 'i', 'S');
 
@@ -71,6 +87,7 @@ int pt_GetStatus(pt_Device *dev)
 		// Timeout
 		return PT_ERR_TIMEOUT;
 	}
+#endif
 
 #ifdef DEBUG
 	printf("DEBUG: Printer status buffer = \n");
@@ -104,16 +121,60 @@ int pt_GetStatus(pt_Device *dev)
 		dev->pixelWidth = ((dev->mediaWidth * 180 * 10) / 254) - 2;
 	}
 
+	// Set printing parameters to defaults --
+	//   Mirror off
+	//   Autocut on
+	dev->mirror = false;
+	dev->autocut = false;
+
 	// Operation succeeded
 	return PT_ERR_SUCCESS;
 }
 
-// TODO: print options struct parameter (e.g. fullcut, halfcut, print res, ...)
-//
-//
+int pt_SetOption(pt_Device *dev, PT_E_OPTION option, int value)
+{
+	// trap dev == NULL
+	if (dev == NULL) {
+		return PT_ERR_BAD_PARAMETER;
+	}
 
-// labels: 1 or more labels
-// count: number of labels, 0<count<MAXINT
+	// set option
+	switch(option) {
+		case PT_OPTION_MIRROR:			// Mirror
+			dev->mirror = (value ? 1 : 0);
+			return PT_ERR_SUCCESS;
+
+		case PT_OPTION_AUTOCUT:		// Auto-cutter enable/disable
+			dev->autocut = (value ? 1 : 0);
+			return PT_ERR_SUCCESS;
+
+		default:
+			return PT_ERR_BAD_PARAMETER;
+	}
+}
+
+int pt_GetOption(pt_Device *dev, PT_E_OPTION option, int *value)
+{
+	// trap dev == NULL or value == NULL
+	if ((dev == NULL) || (value == NULL)) {
+		return PT_ERR_BAD_PARAMETER;
+	}
+
+	// get option value
+	switch(option) {
+		case PT_OPTION_MIRROR:			// Mirror
+			*value = dev->mirror;
+			return PT_ERR_SUCCESS;
+
+		case PT_OPTION_AUTOCUT:		// Auto-cutter enable/disable
+			*value = dev->autocut;
+			return PT_ERR_SUCCESS;
+
+		default:
+			return PT_ERR_BAD_PARAMETER;
+	}
+}
+
 int pt_Print(pt_Device *dev, gdImagePtr *labels, int count)
 {
 	int err;
@@ -159,9 +220,11 @@ int pt_Print(pt_Device *dev, gdImagePtr *labels, int count)
 
 	// M {n1} -- Set Compression Mode
 	//   {n1} = 0x00 ==> no compression
+	//   	Doesn't seem to work on the PT-2450DX...
 	//   {n1} = 0x01 ==> reserved
 	//   {n1} = 0x02 ==> TIFF/Packbits
-	fprintf(dev->fp, "M%c", 0x00);
+	//   	But this works fine on the PT-2450DX...
+	fprintf(dev->fp, "M%c", 0x02);
 
 	// Loop over the images that were passed in
 	for (int imnum=0; imnum < count; imnum++) {
@@ -170,10 +233,15 @@ int pt_Print(pt_Device *dev, gdImagePtr *labels, int count)
 			return PT_ERR_LABEL_TOO_WIDE;
 		}
 
-		//
-		// TODO: trap image height / width == 0?
-		// will libgd allow an image with a zero dimension?
-		//
+		// Trap a label with a width of zero
+		// I'm not sure if this can happen, but it's a single if statement, so
+		// probably worth checking anyway...
+		if (gdImageSX(*curLabel) == 0) {
+			return PT_ERR_LABEL_ZERO_LENGTH;
+		}
+
+		// Get the index of the colour "white" (RGB:255,255,255) in the Gd image
+		int col_white = gdImageColorResolve(*curLabel, 255, 255, 255);
 
 		// Iterate left-to-right over the source image
 		for (int xpos = 0; xpos < gdImageSX(*curLabel); xpos++) {
@@ -185,12 +253,12 @@ int pt_Print(pt_Device *dev, gdImagePtr *labels, int count)
 
 			// Calculate left-side margin for this label size
 			// Again, 128-dot printhead.
-			int margin = (128 + dev->pixelWidth) / 2;
+			int margin = (128 / 2) - (dev->pixelWidth / 2);
 
 			// Copy data from the image to the bit-buffer
 			for (int ypos = 0; ypos < gdImageSY(*curLabel); ypos++) {
-				// Get pixel from gd, is it white (palette entry 0)?
-				if (gdImageGetPixel(*curLabel, xpos, ypos) != 0) {
+				// Get pixel from gd, is it white?
+				if (gdImageGetPixel(*curLabel, xpos, ypos) != col_white) {
 					// No. Set the bit.
 					int bit = 1 << (7 - ((margin+ypos) % 8));
 					bitbuf[(margin+ypos) / 8] |= bit;
@@ -211,7 +279,15 @@ int pt_Print(pt_Device *dev, gdImagePtr *labels, int count)
 				// Row is not clear -- send the pixel data
 				//
 				// TODO: the printer supports Packbits compression. Implement!
-				fprintf(dev->fp, "G");
+				// TODO: After Packbits is implemented, ((128/8)+1) must be
+				//   changed to the length of the Packbits compressed data.
+				//   (note: 128/8 is the printhead size in bytes, the +1 is for
+				//   the control byte we add below...)
+				fprintf(dev->fp, "G%c%c", ((128/8)+1) & 0xff, ((128/8)+1) >> 8);
+
+				// This printer asks for Packbits compressed data. In this
+				// case, we send a "run of N" control byte and fake it...
+				fputc(sizeof(bitbuf) - 1, dev->fp);
 				for (int i=0; i<sizeof(bitbuf); i++) {
 					fputc(bitbuf[i], dev->fp);
 				}

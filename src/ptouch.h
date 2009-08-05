@@ -59,13 +59,25 @@ enum {
 /// Label image is too large for this label tape
 	PT_ERR_LABEL_TOO_WIDE		= -3,
 
+/// Label has a length of zero
+	PT_ERR_LABEL_ZERO_LENGTH	= -4,
+
 /// Printer is not ready
-	PT_ERR_PRINTER_NOT_READY	= -4
+	PT_ERR_PRINTER_NOT_READY	= -5
 };
 
+/*
+ * Job options
+ */
+typedef enum {
+/// Mirror -- mirror the printed label along the long edge
+	PT_OPTION_MIRROR,
+/// Auto-cutter -- enable or disable automatic label cutting
+	PT_OPTION_AUTOCUT
+} PT_E_OPTION;
 
 /**
- * @brief	Initialise the printer
+ * @brief	Initialise the printer.
  * 
  * Initialises the printer and returns a pointer to a pt_Device struct
  * describing it.
@@ -77,7 +89,7 @@ enum {
 pt_Device *pt_Initialise(char *path);
 
 /**
- * @brief	Close a printer device
+ * @brief	Close a printer device.
  *
  * Closes the connection to the printer, and destroys the pt_Device struct.
  *
@@ -86,7 +98,7 @@ pt_Device *pt_Initialise(char *path);
 void pt_Close(pt_Device *dev);
 
 /**
- * @brief	Get the current status of the printer
+ * @brief	Get the current status of the printer.
  *
  * Queries the printer for its current status, then returns the result.
  *
@@ -97,7 +109,45 @@ void pt_Close(pt_Device *dev);
 int pt_GetStatus(pt_Device *dev);
 
 /**
- * @brief	Print one or more labels
+ * @brief	Set a job option for the next print job.
+ *
+ * Sets a job option (specified by <b>option</b>) for the next print job.
+ * These options include printer features like auto-cutting and mirroring
+ * of the label image.
+ *
+ * @param	dev		A pt_Device struct created by pt_Initialise.
+ * @param	option	One of the PT_OPTION_* constants specifying the parameter
+ * 	that is to be set.
+ * @param	value	The value to assign to the job option.
+ * @return	<b>PT_ERR_BAD_PARAMETER:</b> Either <b>dev</b> was equal to NULL,
+ * 	or the option value specified in <b>option</b> was invalid.<br>
+ * 	<b>PT_ERR_SUCCESS:</b> Operation completed successfully, the current value
+ * 	of the option parameter is now set to the contents of <b>value</b>.
+ */
+int pt_SetOption(pt_Device *dev, PT_E_OPTION option, int value);
+
+/**
+ * @brief	Get the current value of a job option for the next print job.
+ *
+ * Returns the current value of a job option (specified by <b>option</b>)
+ * for the next print job.
+ * These options include printer features like auto-cutting and mirroring
+ * of the label image.
+ *
+ * @param	dev		A pt_Device struct created by pt_Initialise.
+ * @param	option	One of the PT_OPTION_* constants specifying the parameter
+ * 	that is to be returned.
+ * @param	value	A pointer to an <b>int</b> that will contain the value
+ * 	of the job option.
+ * @return	<b>PT_ERR_BAD_PARAMETER:</b> Either <b>dev</b> or <b>value</b> was
+ * 	equal to NULL, or the option value specified in <b>option</b> was invalid.<br>
+ * 	<b>PT_ERR_SUCCESS:</b> Operation completed successfully, the current value
+ * 	of the option parameter is now stored in <b>value</b>.
+ */
+int pt_GetOption(pt_Device *dev, PT_E_OPTION option, int *value);
+
+/**
+ * @brief	Print one or more labels.
  *
  * Takes a pointer to an array of Libgd images, and prints each of them.
  *
