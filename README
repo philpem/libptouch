@@ -1,0 +1,137 @@
+libptouch: Linux printer driver library for P-Touch label printers
+(C) 2009 Philip Pemberton <philpem@philpem.me.uk>.
+
+
+
+Table of Contents
+=================
+  1. What is libptouch?
+  2. Supported printers
+  3. Building and Using libptouch
+  T. TODO, aka Things That Don't Work Yet.
+  R. References
+
+
+1. What is libptouch?
+=====================
+libptouch is a library that allows a user-mode application to print labels
+using a Brother P-touch series label printer. The goal of the libptouch
+project is to create a driver that will allow any Linux application to
+print to a P-touch printer, using a common raster image as a source.
+
+Brother only release official Linux drivers for a small number of P-touch
+printers, and these all rely on the CUPS printing system to function (not to
+mention the fact that the print filter is completely closed-source). On top
+of the added complexity of having to feed data through CUPS or LPR, the print
+quality was actually pretty poor -- the fonts were covered in jagged edges,
+and printed barcodes looked like they'd been fed through a blender (needless
+to say my PSC 5281 scanner wouldn't read them).
+
+As a result of this, I started working on a library that could take a number
+of Libgd images, and feed them to the P-touch in sequence. On top of that, I
+wanted to be able to set printing parameters (that is, turn the auto-cutter
+and mirroring options on and off) without having to butcher command lines
+and drop to a shell. Finally, I wanted to be able to run my applications as a
+(relatively) unprivileged user -- the printing apps should not need to be
+'setuid root'.
+
+So I set to work finding out all I could about the P-touch protocol. It turns
+out that the standard mode for my PT-2450DX printer was the so-called "PT-CBP"
+mode, and that documentation for this printing protocol had been released for
+another printer in the P-touch series, the PT-9500PC[1]. Using the protocol
+details in the PT-9500PC documentation, and after many long nights of coding,
+lots of cups of tea and much wasted label tape, I created a library that would
+eventually be released as libptouch.
+
+
+2. Supported printers
+=====================
+
+NOTE: If you don't see your printer on this list, ask me about adding it.
+
++--------------+--------------------------------------------------------------+
+|   Printer    | Features                                                     |
+|    Model     +----+----+----------------------------------------------------+
+|    Number    | S  | AC | HC | PHW | DPI | MTH  | MPH  |                     |
++--------------+----+----+----+-----+-----+------+------+---------------------+
+| PT-2450DX    | Y  | Y  |    | 128 | 180 | 24mm | 18mm |                     |
++--------------+----+----+----+-----+-----+-----------------------------------+
+
+S   = Supported/Tested
+        Y = Fully working
+        P = Partially working
+        ? = Not tested
+AC  = Auto Cutter
+HC  = Half Cut
+MI  = Mirror
+PHW = Printhead width (pixels)
+DPI = Dots per inch
+MTH = Max label tape height (mm)
+MPH = Max printing height (mm)
+
+"Y" = Yes
+" " = No
+
+
+3. Building and Using libptouch
+===============================
+To build libptouch, you will need:
+  GNU gcc    version 3.1 or later  (libptouch is tested with gcc 4.3.3)
+  GNU make   version 3.80 or later (libptouch is tested with make 3.81)
+  libgd      version 2.0 or higher (libptouch is tested with libgd 2.0.36)
+
+Briefly, this means any common Linux distribution (Debian or RedHat based)
+released in 2006 or later should successfully build libptouch. As for other
+Unices, or older versions of Linux.... you're on your own.
+
+On Ubuntu or Debian, the following command will install all the packages
+necessary to build libptouch:
+  $ sudo apt-get install build-essential libgd2-xpm-dev
+
+Once you have installed the necessary tools and libraries, you can compile
+libptouch by using the following command:
+  $ tar -zxf libptouch-$VERSION.tgz
+  $ cd libptouch-$VERSION
+  $ make
+
+This will build the libptouch library and documentation from the source code.
+
+
+T. TODO, aka Things That Don't Work Yet.
+========================================
+  * Printers with printheads that don't have 128 dots will not work. This
+    basically means you can't use any printer whose maximum label tape width
+    is less than 24mm.
+
+  * I'd like to implement graphics inversion. Basically, where there is white,
+    the printer will print black. This could be useful for printing
+    white-on-black labels when you're out of white-on-black tape, or vice versa
+    :)
+
+  * There is no support for serial port printers. At all.
+
+  * The PT-PC is not, and will likely never be supported, as it uses a
+    different printing protocol and can only print bit image graphics on the
+    central 3.5mm (!) of the label tape.
+
+  * The QL-series label printers aren't supported either. I'd love to add
+    support for them, but I don't have a QL-series printer to play with. The
+    same applies to the rest of the P-touch (PT-series) printers that aren't
+    listed as "Supported" in the list above.
+
+  * Data compression. The later PT-series printers support "Packbits"
+    compression of each print line. At the moment, this isn't implemented.
+    Instead, a "COPY N BYTES" compression control byte is sent, followed by
+    a line of print data. Rinse, repeat.
+
+  * No option to set the feed amount. I'm not even 100% sure if this works
+    on most PT-series printers, but it might be worth implementing. See
+    <http://www.undocprint.org/formats/page_description_languages/brother_p-touch>.
+
+
+R. References
+=============
+1. Brother Industries, Ltd. "PT-9500PC Command Reference, CBP-RASTER Mode
+  (PTCBP Mode) Volume" August 29, 2003, version 1.0.
+  Available online: http://etc.nkadesign.com/Printers/QL550LabelPrinter
+
