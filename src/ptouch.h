@@ -18,19 +18,31 @@
  *
  * This is used to store the state of the printer as of the last call to
  * pt_GetStatus(), the current job settings, and other details required
- * by the printer driver.
+ * by the printer driver. User code should not change any parameters inside
+ * a pt_Device struct under any circumstances. For further information on
+ * the various fields, see the Brother PT-9500PC Command Reference.
  */
 typedef struct {
 	/// Reference to the printer device
 	FILE	*fp;
 	/// Error information
 	int		errorInfo[2];
-	/// Label width, type and length
-	int		mediaWidth, mediaType, mediaLength;
+	/// Label width (in millimetres)
+	int		mediaWidth;
+	/// Label type
+	int		mediaType;
+	///	Label length (in millimetres)
+	int		mediaLength;
 	/// Label width in pixels
 	int		pixelWidth;
-	/// Status type, phase type, and phase number
-	int		statusType, phaseType, phaseHi, phaseLo;
+	/// Printer status type
+	int		statusType;
+	/// Printing phase type
+	int		phaseType;
+	/// Printing phase, high byte
+	int		phaseHi;
+	/// Printing phase, low byte
+	int		phaseLo;
 	/// Notification number
 	int		notification;
 
@@ -38,9 +50,8 @@ typedef struct {
 	int		autocut;
 	/// Print parameter: mirror printing enable
 	int		mirror;
-	/// Print parameter: half-cut enable
-	/// Print parameter: chainprint enable
-	/// Print parameter: label end cut
+	// TODO: add support for half-cut (when I get a printer that supports it)
+	// TODO: add support for printing a separator line when autocut is off
 } pt_Device;
 
 /*
@@ -70,7 +81,7 @@ enum {
  * Job options
  */
 typedef enum {
-/// Mirror -- mirror the printed label along the long edge
+/// Mirror -- mirror the printed label vertically
 	PT_OPTION_MIRROR,
 /// Auto-cutter -- enable or disable automatic label cutting
 	PT_OPTION_AUTOCUT
