@@ -7,7 +7,7 @@ Table of Contents
 =================
   1. What is libptouch?
   2. Supported printers
-  3. Building and Using libptouch
+  3. Building and Installing libptouch
   T. TODO, aka Things That Don't Work Yet.
   R. References
 
@@ -73,12 +73,15 @@ MPH = Max printing height (mm)
 " " = No
 
 
-3. Building and Using libptouch
-===============================
+3. Building and Installing libptouch
+====================================
 To build libptouch, you will need:
   GNU gcc    version 3.1 or later  (libptouch is tested with gcc 4.3.3)
   GNU make   version 3.80 or later (libptouch is tested with make 3.81)
-  libgd      version 2.0 or higher (libptouch is tested with libgd 2.0.36)
+  libgd      version 2.0 or later  (libptouch is tested with libgd 2.0.36)
+
+To build the documentation, you will also need:
+  doxygen    version 1.5 or later  (libptouch is tested with doxygen 1.5.8)
 
 Briefly, this means any common Linux distribution (Debian or RedHat based)
 released in 2006 or later should successfully build libptouch. As for other
@@ -95,6 +98,33 @@ libptouch by using the following command:
   $ make
 
 This will build the libptouch library and documentation from the source code.
+
+To install libptouch into /usr/local, type:
+  $ make install
+
+To install libptouch into another directory, say /opt/libptouch, type:
+  $ make install PREFIX=/opt/libptouch
+
+
+4. Using libptouch
+==================
+[... TODO ...]
+
+
+5. Using libptouch-based Applications Without Superuser Privileges
+==================================================================
+To use a libptouch-based application without superuser (root) privileges, you
+must do one of two things:
+
+  1. Set the application's group ID to the user that normally owns printers
+     (or serial ports) on your system, then chmod the application to "g+S"
+     (turn the Set Group ID bit on). This will only work if all your printers
+     use the same interface type, e.g. all serial or all USB.
+
+  2. Add the user who will be running the application to the 'lp' or 'dialout'
+     group (for USB or serial printers respectively). Note that a user can be
+     a member of more than one group -- see your system documentation for more
+     information.
 
 
 T. TODO, aka Things That Don't Work Yet.
