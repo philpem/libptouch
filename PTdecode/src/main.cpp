@@ -95,31 +95,39 @@ void runGraphicsXferMode1()
 				ch = getNext();
 				len = (((int)getNext()) << 8) + ch;
 
-				// Dump the gfx data
-				rowpos = 0;
-				while (len > 0) {
-					// get the prefix byte
-					ch = getNext(); len--;
-
-					// Is this a "run" (a single byte replicated) or a "copy"?
-					int runlen;
-					if (ch & 0x80) {
-						// MSB set, it's a run
-						runlen = 257 - ((int)ch);
-
-						// Get the byte to replicate, and replicate it into the o/p buffer
+				// Is gfx payload compressed or uncompressed?
+				if (cm == 1) {
+					// Uncompressed. Read straight into the row buffer.
+					while (len > 0) {
+						row[rowpos++] = getNext(); len--;
+					}
+				} else {
+					// Decompress the gfx data
+					rowpos = 0;
+					while (len > 0) {
+						// get the prefix byte
 						ch = getNext(); len--;
-						while (runlen-- > 0) {
-							row[rowpos++] = ch;
-						}
-					} else {
-						// MSB clear, it's a copy
-						runlen = ((int)ch) + 1;
 
-						// Copy N bytes from the input stream to the output
-						while (runlen-- > 0) {
-							row[rowpos++] = getNext();
-							len--;
+						// Is this a "run" (a single byte replicated) or a "copy"?
+						int runlen;
+						if (ch & 0x80) {
+							// MSB set, it's a run
+							runlen = 257 - ((int)ch);
+
+							// Get the byte to replicate, and replicate it into the o/p buffer
+							ch = getNext(); len--;
+							while (runlen-- > 0) {
+								row[rowpos++] = ch;
+							}
+						} else {
+							// MSB clear, it's a copy
+							runlen = ((int)ch) + 1;
+
+							// Copy N bytes from the input stream to the output
+							while (runlen-- > 0) {
+								row[rowpos++] = getNext();
+								len--;
+							}
 						}
 					}
 				}
