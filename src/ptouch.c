@@ -9,11 +9,11 @@
  ****************************************************************************/
 
 // TODO: disable
-#define DEBUG
+//#define DEBUG
 
 // This debug option forces Request Status to always "see" a good status
 // block. Mostly useful for testing using write-to-file mode.
-#define DEBUG_SKIP_STATUS_READ
+//#define DEBUG_SKIP_STATUS_READ
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,12 +50,19 @@ pt_Device *pt_Initialise(char *path)
 	dev->fp = prn;
 
 	// Memory allocation OK, now get the printer's status
-	if (pt_GetStatus(dev) == 0) {
-		return dev;
-	} else {
-		free(dev);
+	if (pt_GetStatus(dev) != PT_ERR_SUCCESS) {
+		// GetStatus failed, close the device and exit.
+		pt_Close(dev);
 		return NULL;
 	}
+
+	// Set printing parameters to defaults --
+	//   Mirror off
+	//   Autocut off
+	dev->mirror = false;
+	dev->autocut = false;
+
+	return dev;
 }
 
 int pt_GetStatus(pt_Device *dev)
@@ -120,12 +127,6 @@ int pt_GetStatus(pt_Device *dev)
 		// This is far closer than Brother suggest, but hey-ho.
 		dev->pixelWidth = ((dev->mediaWidth * 180 * 10) / 254) - 2;
 	}
-
-	// Set printing parameters to defaults --
-	//   Mirror off
-	//   Autocut on
-	dev->mirror = false;
-	dev->autocut = false;
 
 	// Operation succeeded
 	return PT_ERR_SUCCESS;
