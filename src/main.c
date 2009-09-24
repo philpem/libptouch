@@ -78,6 +78,7 @@ int main(int argc, char **argv)
 	// Set job options
 	pt_SetOption(dev, PT_OPTION_AUTOCUT, 1);
 	pt_SetOption(dev, PT_OPTION_MIRROR, 1);
+	pt_SetOption(dev, PT_OPTION_SEPARATOR, 1);
 
 	// Print the label
 	printf("Print state code: %d\n", pt_Print(dev, &im, 1));

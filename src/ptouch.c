@@ -59,8 +59,10 @@ pt_Device *pt_Initialise(char *path)
 	// Set printing parameters to defaults --
 	//   Mirror off
 	//   Autocut off
+	//   Separator ticks off
 	dev->mirror = false;
 	dev->autocut = false;
+	dev->separator = false;
 
 	return dev;
 }
@@ -141,12 +143,16 @@ int pt_SetOption(pt_Device *dev, PT_E_OPTION option, int value)
 
 	// set option
 	switch(option) {
-		case PT_OPTION_MIRROR:			// Mirror
+		case PT_OPTION_MIRROR:		// Mirror
 			dev->mirror = (value ? 1 : 0);
 			return PT_ERR_SUCCESS;
 
 		case PT_OPTION_AUTOCUT:		// Auto-cutter enable/disable
 			dev->autocut = (value ? 1 : 0);
+			return PT_ERR_SUCCESS;
+
+		case PT_OPTION_SEPARATOR:	// Separator ticks enable/disable
+			dev->separator = (value ? 1 : 0);
 			return PT_ERR_SUCCESS;
 
 		default:
@@ -169,6 +175,10 @@ int pt_GetOption(pt_Device *dev, PT_E_OPTION option, int *value)
 
 		case PT_OPTION_AUTOCUT:		// Auto-cutter enable/disable
 			*value = dev->autocut;
+			return PT_ERR_SUCCESS;
+
+		case PT_OPTION_SEPARATOR:	// Separator ticks enable/disable
+			*value = dev->separator;
 			return PT_ERR_SUCCESS;
 
 		default:
@@ -257,6 +267,8 @@ int pt_Print(pt_Device *dev, gdImagePtr *labels, int count)
 			int margin = (128 / 2) - (dev->pixelWidth / 2);
 
 			// Copy data from the image to the bit-buffer
+			// If the image is too tall for the label, only the topmost part
+			// will be printed -- the margin is enforced by (margin+ypos).
 			for (int ypos = 0; ypos < gdImageSY(*curLabel); ypos++) {
 				// Get pixel from gd, is it white?
 				if (gdImageGetPixel(*curLabel, xpos, ypos) != col_white) {
@@ -294,6 +306,52 @@ int pt_Print(pt_Device *dev, gdImagePtr *labels, int count)
 				}
 			}
 		}
+
+		// Print separator line
+		if (dev->separator) {
+			char bitbuf[128/8];		// 128-dot printhead, 8 bits per byte
+
+			// Calculate margin for this label size
+			// Again, 128-dot printhead.
+			int margin = (128 / 2) - (dev->pixelWidth / 2);
+			printf("calc margin %d\npixelwidth %d\n", margin, dev->pixelWidth);
+
+			// One blank line
+			fprintf(dev->fp, "Z");
+
+			// Dotted line (assumes printhead size of 128 dots and that
+			// bitbuf has same size as printhead)
+			fprintf(dev->fp, "G%c%c", ((128/8)+1)&0xff, ((128/8)+1) >> 8);
+
+			// Clear the bit buffer
+			memset(&bitbuf, 0, sizeof(bitbuf));
+
+			// Draw the tick marks
+			int step = (dev->pixelWidth / 4);
+			for (int i=(margin+step); i<(margin+step+(step/2)); i++) {
+				// top tick mark
+				int bit = 1 << (7 - (i % 8));
+				bitbuf[i / 8] |= bit;
+			}
+			for (int i=(margin+(2*step)); i<(margin+(2*step)+(step/2)); i++) {
+				// bottom tick mark
+				int bit = 1 << (7 - (i % 8));
+				bitbuf[i / 8] |= bit;
+			}
+
+			// TODO: Add Packbits compression code?
+			// This printer asks for Packbits compressed data. In this
+			// case, we send a "run of N" control byte and fake it...
+			fputc(sizeof(bitbuf) - 1, dev->fp);
+			for (int i=0; i<sizeof(bitbuf); i++) {
+				// Draw tick-marks from the bit buffer
+				fputc(bitbuf[i], dev->fp);
+			}
+
+			// One final blank line
+			fprintf(dev->fp, "Z");
+		}
+
 
 		// Is this the last label?
 		if (imnum == (count-1)) {

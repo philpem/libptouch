@@ -50,8 +50,9 @@ typedef struct {
 	int		autocut;
 	/// Print parameter: mirror printing enable
 	int		mirror;
+	/// Print parameter: print separator line
+	int		separator;
 	// TODO: add support for half-cut (when I get a printer that supports it)
-	// TODO: add support for printing a separator line when autocut is off
 } pt_Device;
 
 /*
@@ -84,7 +85,9 @@ typedef enum {
 /// Mirror -- mirror the printed label vertically
 	PT_OPTION_MIRROR,
 /// Auto-cutter -- enable or disable automatic label cutting
-	PT_OPTION_AUTOCUT
+	PT_OPTION_AUTOCUT,
+/// Separator -- prints tick marks between each label
+	PT_OPTION_SEPARATOR
 } PT_E_OPTION;
 
 /**
