@@ -13,7 +13,7 @@
 
 // This debug option forces Request Status to always "see" a good status
 // block. Mostly useful for testing using write-to-file mode.
-//#define DEBUG_SKIP_STATUS_READ
+#define DEBUG_SKIP_STATUS_READ
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -314,7 +314,6 @@ int pt_Print(pt_Device *dev, gdImagePtr *labels, int count)
 			// Calculate margin for this label size
 			// Again, 128-dot printhead.
 			int margin = (128 / 2) - (dev->pixelWidth / 2);
-			printf("calc margin %d\npixelwidth %d\n", margin, dev->pixelWidth);
 
 			// One blank line
 			fprintf(dev->fp, "Z");
