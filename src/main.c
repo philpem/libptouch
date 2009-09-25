@@ -58,17 +58,83 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	// Figure out image width from DPI
+	// Multiply by 10, that way we can use integer math instead if floating
+	// point for the DPI/width calculations.
+	unsigned long labelLength = ((20.0 * dev->dpiLabel * 10) / 254) - 2;
+
+	// quick test
+	printf("label of 256 dots = %lf in\n", (256.0 / dev->dpiLabel));
+	printf("label of 256 dots = %lf mm\n", (256.0 / dev->dpiLabel) * 25.4);
+	printf("label of %ld dots = %lf mm\n", labelLength, (((double)labelLength) / dev->dpiLabel) * 25.4);
+
 	// Create a label
 	gdImagePtr im;
 	int white, black;
-	im = gdImageCreate(256, dev->pixelWidth);
+	im = gdImageCreate(labelLength, dev->pixelWidth);
 	white = gdImageColorAllocate(im, 255, 255, 255);
 	black = gdImageColorAllocate(im, 0, 0, 0);
-	gdImageString(im, gdFontGetLarge(), 0, 0, "!!123!! Test label !!ABC!!", black);
+/*	gdImageString(im, gdFontGetLarge(), 0, 0, "!!123!! Test label !!ABC!!", black);
 	gdImageString(im, gdFontGetLarge(), 10, 10, "!!123!! Test label !!ABC!!", black);
 	gdImageString(im, gdFontGetLarge(), 20, 20, "!!123!! Test label !!ABC!!", black);
 	gdImageString(im, gdFontGetLarge(), 30, 30, "!!123!! Test label !!ABC!!", black);
 	gdImageString(im, gdFontGetLarge(), 40, 40, "!!123!! Test label !!ABC!!", black);
+*/
+
+//#define FONT_BLUEHIGHWAY
+
+#if defined(FONT_BLUEHIGHWAY)
+	char *font_normal = "./bluehighway/bluehigh.ttf";
+	char *font_bold   = "./bluehighway/bluebold.ttf";
+#else
+	char *font_normal = "./Arial.ttf";
+	char *font_bold   = "./Arial_Bold.ttf";
+#endif
+
+	char *pn = "SMD-001/01";
+	char *strings[] = {
+		"Surface mount resistor",
+		"0805, \u00BCW (SMD-001/01)",
+		"$33\u03A9",
+	};
+
+	int curtop = 3;
+	int brect[8];
+	char *fte;
+
+	gdFTStringExtra extra;
+	extra.flags = gdFTEX_RESOLUTION | gdFTEX_DISABLE_KERNING;
+	extra.hdpi = dev->dpiLabel;
+	extra.vdpi = dev->dpiPrinthead;
+
+	//// PART NUMBER
+	// calc bounding box
+	fte = gdImageStringFTEx(NULL, &brect[0], 0, font_bold, 9.0, 0.0, 0, 0, pn, &extra);
+	if (fte != NULL) printf("freetype error: %s\n", fte);
+
+	// draw P/N
+	fte = gdImageStringFTEx(im, NULL, 0-black, font_bold, 9.0, 0.0, 3+abs(brect[6]), curtop+abs(brect[7]), pn, &extra);
+	if (fte != NULL) printf("freetype error: %s\n", fte);
+
+	// update Y position
+	curtop += abs(brect[7]) + 2;
+
+	//// draw description
+	for (int i=0; i<(sizeof(strings)/sizeof(strings[0])); i++) {
+		char *str = strings[i];
+		char *font = font_normal;
+		float fontsize = 7.0;
+
+		if (*str == '$') { font = font_bold; fontsize = 8.0; str++; }
+
+		fte = gdImageStringFTEx(NULL, &brect[0], 0, font, fontsize, 0.0, 0, 0, str, &extra);
+		if (fte != NULL) printf("freetype error: %s\n", fte);
+
+		fte = gdImageStringFTEx(im, NULL, 0-black, font, fontsize, 0.0, 3+abs(brect[6]), curtop+abs(brect[7]), str, &extra);
+		if (fte != NULL) printf("freetype error: %s\n", fte);
+
+		curtop += abs(brect[7]) + 1;
+	}
 
 	// dump the image (for testing purposes)
 	FILE *fp = fopen("labeldump.png", "wb");
