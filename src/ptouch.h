@@ -46,6 +46,11 @@ typedef struct {
 	/// Notification number
 	int		notification;
 
+	/// Dots per inch -- print head
+	int		dpiPrinthead;
+	/// Dots per inch -- "label length" direction
+	int		dpiLabel;
+
 	/// Print parameter: autocutter enable
 	int		autocut;
 	/// Print parameter: mirror printing enable

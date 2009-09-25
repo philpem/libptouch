@@ -115,6 +115,10 @@ int pt_GetStatus(pt_Device *dev)
 	dev->phaseLo      = buf[21];
 	dev->notification = buf[22];
 
+	// Set DPI
+	dev->dpiPrinthead = 180;
+	dev->dpiLabel     = 180;
+
 	// Set pixel width (label width in pixels)
 	if (dev->mediaWidth >= 24) {
 		// Label tape is 24mm or wider. Print head is 128 dots at 180dpi,
@@ -127,7 +131,7 @@ int pt_GetStatus(pt_Device *dev)
 		// floating point to convert from inches to mm. The -2 is a
 		// safety margin -- one pixel on either side of the label.
 		// This is far closer than Brother suggest, but hey-ho.
-		dev->pixelWidth = ((dev->mediaWidth * 180 * 10) / 254) - 2;
+		dev->pixelWidth = ((dev->mediaWidth * dev->dpiPrinthead * 10) / 254) - 2;
 	}
 
 	// Operation succeeded
